@@ -1,0 +1,20 @@
+layout(vertices=3) out;
+
+in vec3 tcsPos[];
+in vec3 tcsNormal[];
+
+out vec3 tesPos[];
+out vec3 tesNormal[];
+
+void main(){
+
+    tesNormal[gl_InvocationID] = tcsNormal[gl_InvocationID];
+    tesPos[gl_InvocationID] = tcsPos[gl_InvocationID];
+
+    float tess = 1.0;
+
+    gl_TessLevelOuter[0] = tess;
+    gl_TessLevelOuter[1] = tess;
+    gl_TessLevelOuter[2] = tess;
+    gl_TessLevelInner[0] = tess;
+}
