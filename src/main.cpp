@@ -41,14 +41,14 @@ Global variables.
  */
 GLuint vao;
 
-const int WINDOW_WIDTH = 800;
-const int WINDOW_HEIGHT = 600;
+const int WINDOW_WIDTH = 960;
+const int WINDOW_HEIGHT = 650;
 
 GLFWwindow* window;
 
 float cameraYaw = 4.2f;
 float cameraPitch = 0.5f;
-float cameraZoom = 3.0;
+float cameraZoom = 7.0;
 
 glm::vec3 cameraPos;
 glm::mat4 viewMatrix;
@@ -81,7 +81,7 @@ void LoadModel(void) {
     // First load the model.
     //
 
-    std::string inputfile = "untitled.obj";
+    std::string inputfile = "teapot.obj";
     std::vector<tinyobj::shape_t> shapes;
     std::vector<tinyobj::material_t> materials;
 
@@ -194,7 +194,7 @@ int main(int argc, char** argv)
 	);
 
 
-    glPatchParameteri(GL_PATCH_VERTICES, 3);
+	glPatchParameteri(GL_PATCH_VERTICES, 3);
 
 
     // projection matrix.
@@ -215,7 +215,7 @@ int main(int argc, char** argv)
     GL_C(glEnable(GL_CULL_FACE));
     GL_C(glEnable(GL_DEPTH_TEST));
 
-    bool isTess = true;
+    bool isTess = false;
 
     while (!glfwWindowShouldClose(window)) {
 	//  	GL_C(glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ));
