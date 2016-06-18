@@ -220,10 +220,7 @@ void Render() {
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     glfwGetWindowSize(window, &wWidth, &wHeight);
 
-//    printf("ratio: %f\n",   );
-
     float ratio = fbWidth / (float)wWidth;
-
     int s = ratio * GUI_WIDTH;
 
 
@@ -316,6 +313,7 @@ void Render() {
 
 }
 
+
 void HandleInput() {
     ImGuiIO& io = ImGui::GetIO();
 
@@ -335,13 +333,17 @@ void HandleInput() {
 	const float MOUSE_SENSITIVITY = 0.005;
 
 	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-	if (state == GLFW_PRESS) {
 
+	if (state == GLFW_PRESS) {
 	    cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
 	    cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
 	}
     }
 }
+//// top-left: 410, 70
+//// top-left: 1100, 700
+// <410, 70, 690, 630>
+
 
 int main(int argc, char** argv)
 {
