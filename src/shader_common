@@ -1,4 +1,4 @@
-#version 330
+#version 400
 
 
 vec3 lightPos = vec3(4.0, 4.0, 4.0);
