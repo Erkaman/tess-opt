@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <chrono>
+#include <thread>
+
 
 #include "gl_util.hpp"
 
@@ -43,6 +46,10 @@ struct Mesh {
 */
 GLuint vao;
 
+
+GpuProfiler* profiler;
+
+
 const int WINDOW_WIDTH = 960;
 const int WINDOW_HEIGHT = 650;
 const int GUI_WIDTH = 250;
@@ -75,6 +82,13 @@ double curMouseY = 0;
 const int RENDER_SPECULAR = 0;
 const int RENDER_PROCEDURAL_TEXTURE = 1;
 int renderMode = RENDER_PROCEDURAL_TEXTURE;
+
+
+
+
+
+std::chrono::milliseconds oneMilliSecond(1);
+
 
 
 /*
@@ -190,6 +204,12 @@ void InitGlfw() {
 
     GL_C(glEnable(GL_CULL_FACE));
     GL_C(glEnable(GL_DEPTH_TEST));
+
+
+    /*
+      There variables are used for regulating FPS.
+     */
+
 }
 
 void Render() {
@@ -245,10 +265,14 @@ void Render() {
     else
 	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
+    profiler->Begin();
+
     GL_C(glDrawElements(
 	     useTess ?  GL_PATCHES: GL_TRIANGLES,
 
 	     mesh.faces.size() , GL_UNSIGNED_INT, 0));
+
+    profiler->End();
 
     // no wireframe for  ImGui.
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
@@ -348,6 +372,7 @@ int main(int argc, char** argv)
     LoadModel();
 
 
+    profiler = new GpuProfiler;
 
     while (!glfwWindowShouldClose(window)) {
 
@@ -361,11 +386,18 @@ int main(int argc, char** argv)
 
 	HandleInput();
 
+	string windowTitle =  "Teapot render time: " + std::to_string(profiler->DtAvg());
+//	windowTitle +=  ". FPS: " + fpsString;
+
+	glfwSetWindowTitle(window, windowTitle.c_str());
+
 
 
         /* display and process events through callbacks */
         glfwSwapBuffers(window);
 
+	profiler->WaitForDataAndUpdate();
+	profiler->EndFrame();
     }
 
     glfwTerminate();

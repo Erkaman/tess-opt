@@ -7,8 +7,12 @@
 #include <GLFW/glfw3.h>
 
 #include <stdlib.h>
+#include <string.h>
 
 #include <string>
+
+#include <chrono>
+
 
 #define _DEBUG
 
@@ -187,4 +191,116 @@ inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& f
     glDeleteShader(fs);
 
     return shader;
+}
+
+
+
+
+class GpuProfiler
+{
+public:
+    GpuProfiler ();
+    ~GpuProfiler ();
+
+    inline void Begin ();
+    inline void End ();
+
+    inline void EndFrame (); // call at the end of a frame.
+
+    // Wait on GPU for last frame's data (not this frame's) to be available
+    inline void WaitForDataAndUpdate ();
+
+    inline float Dt ()
+	{ return m_adT; }
+    inline float DtAvg ()
+	{ return m_adTAvg; }
+
+protected:
+    int m_iFrameQuery;
+    int m_iFrameCollect;
+
+
+    GLuint m_apQueryTs[2];
+
+    float m_adT;
+    float m_adTAvg;
+
+    float m_adTTotalAvg;
+    int m_frameCountAvg;
+    float m_tBeginAvg;
+};
+
+
+inline GpuProfiler::GpuProfiler ()
+    :	m_iFrameQuery(0),
+	m_iFrameCollect(-1),
+	m_frameCountAvg(0),
+	m_tBeginAvg(0.0f)
+{
+    memset(m_apQueryTs, 0, sizeof(m_apQueryTs));
+
+    GL_C(glGenQueries(1,&m_apQueryTs[0] ));
+    GL_C(glGenQueries(1,&m_apQueryTs[1] ));
+}
+
+
+inline GpuProfiler::~GpuProfiler () {
+    GL_C(glDeleteQueries(1, &m_apQueryTs[0]) );
+    GL_C(glDeleteQueries(1, &m_apQueryTs[1]) );
+}
+
+inline void GpuProfiler::Begin () {
+    GL_C(glBeginQuery(GL_TIME_ELAPSED,m_apQueryTs[m_iFrameQuery]));
+}
+
+
+inline void GpuProfiler::End () {
+    GL_C(glEndQuery(GL_TIME_ELAPSED));
+}
+
+
+inline void GpuProfiler::EndFrame ()
+{
+    ++m_iFrameQuery &= 1;
+}
+
+inline float Time() {
+    std::clock_t startcputime = std::clock();
+    //  LOG_I("startcputime: %ld", startcputime);
+    float cpu_duration = (float)(startcputime) / (float)CLOCKS_PER_SEC;
+    return cpu_duration;
+}
+
+
+inline void GpuProfiler::WaitForDataAndUpdate ()
+{
+	if (m_iFrameCollect < 0)
+	{
+		// Haven't run enough frames yet to have data
+		m_iFrameCollect = 0;
+		return;
+	}
+
+	int iFrame = m_iFrameCollect;
+	++m_iFrameCollect &= 1;
+
+	    GLuint64 timer;
+
+	    glGetQueryObjectui64v(m_apQueryTs[iFrame],
+                    GL_QUERY_RESULT, &timer);
+
+		m_adT = float(timer) / float(1000.0f * 1000.0f );
+
+		m_adTTotalAvg += m_adT;
+
+	++m_frameCountAvg;
+	if (Time() > m_tBeginAvg + 0.50f)
+	{
+	    //   LOG_I("avg");
+			m_adTAvg = m_adTTotalAvg / m_frameCountAvg;
+			m_adTTotalAvg = 0.0f;
+
+		m_frameCountAvg = 0;
+		m_tBeginAvg = Time();
+	}
 }
