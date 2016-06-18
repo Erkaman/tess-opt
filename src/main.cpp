@@ -51,13 +51,15 @@ GLFWwindow* window;
 
 float cameraYaw = 4.2f;
 float cameraPitch = 0.5f;
-float cameraZoom = 7.0;
+float cameraZoom = 3.0;
 
 glm::vec3 cameraPos;
 glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
 
-bool isTess = false;
+// use tesselation
+bool useTess = true;
+int tessLevel = 1;
 
 GLuint tessShader;
 GLuint normalShader;
@@ -201,7 +203,7 @@ void Render() {
     GL_C(glClearColor(0.0f, 0.0f, 0.3f, 1.0f));
     GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    if(isTess)
+    if(useTess)
 	GL_C(glUseProgram(tessShader));
     else
 	GL_C(glUseProgram(normalShader));
@@ -211,28 +213,23 @@ void Render() {
 
     glm::mat4 MVP = projectionMatrix * viewMatrix;
 
-    if(isTess) {
-
-
-
-
-	GL_C(glUniformMatrix4fv(glGetUniformLocation(tessShader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
-	GL_C(glUniformMatrix4fv(glGetUniformLocation(tessShader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
-
+    GLuint shader;
+    if(useTess) {
+	shader = tessShader;
     } else {
-
-	GL_C(glUniformMatrix4fv(glGetUniformLocation(normalShader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
-	GL_C(glUniformMatrix4fv(glGetUniformLocation(normalShader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
-
-
-
+	shader = normalShader;
     }
 
+	GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
+	GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
 
+	if(useTess) {
+	    GL_C(glUniform1f(glGetUniformLocation(shader, "uTessLevel"), (float)tessLevel  ));
+	}
 
 
     GL_C(glDrawElements(
-	     isTess ?  GL_PATCHES: GL_TRIANGLES,
+	     useTess ?  GL_PATCHES: GL_TRIANGLES,
 
 	     mesh.faces.size() , GL_UNSIGNED_INT, 0));
 
@@ -253,7 +250,15 @@ void Render() {
 
 	    static float f = 0.0f;
 	    ImGui::Text("Hello, world!");
-	    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+
+	    ImGui::Checkbox("Use Tessellation", &useTess);
+
+	    if(useTess) {
+	    ImGui::SliderInt("TessLevel", &tessLevel, 1, 5);
+
+	    }
+
+
 
 	}
 	ImGui::End();
@@ -271,28 +276,28 @@ void HandleInput() {
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
     }
 
-    cameraZoom += GetMouseWheel();
+    if(!io.WantCaptureMouse) { // if not interacting with ImGui, we handle our own input.
+
+	cameraZoom += GetMouseWheel();
 
 
-    prevMouseX = curMouseX;
-    prevMouseY = curMouseY;
-    glfwGetCursorPos(window, &curMouseX, &curMouseY);
+	prevMouseX = curMouseX;
+	prevMouseY = curMouseY;
+	glfwGetCursorPos(window, &curMouseX, &curMouseY);
 
-    const float MOUSE_SENSITIVITY = 0.005;
+	const float MOUSE_SENSITIVITY = 0.005;
 
-    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-    if (state == GLFW_PRESS) {
+	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+	if (state == GLFW_PRESS) {
 
-	cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
-	cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
-    }
-
-
+	    cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
+	    cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
+	}
+     }
 }
 
 int main(int argc, char** argv)
 {
-
     InitGlfw();
     ImGui_ImplGlfwGL3_Init(window, true);
 

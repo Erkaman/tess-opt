@@ -6,15 +6,17 @@ in vec3 tcsNormal[];
 out vec3 tesPos[];
 out vec3 tesNormal[];
 
+uniform float uTessLevel;
+
 void main(){
 
     tesNormal[gl_InvocationID] = tcsNormal[gl_InvocationID];
     tesPos[gl_InvocationID] = tcsPos[gl_InvocationID];
 
-    float tess = 1.0;
+//    float tessLevel = 1.0;
 
-    gl_TessLevelOuter[0] = tess;
-    gl_TessLevelOuter[1] = tess;
-    gl_TessLevelOuter[2] = tess;
-    gl_TessLevelInner[0] = tess;
+    gl_TessLevelOuter[0] = uTessLevel;
+    gl_TessLevelOuter[1] = uTessLevel;
+    gl_TessLevelOuter[2] = uTessLevel;
+    gl_TessLevelInner[0] = uTessLevel;
 }
