@@ -1,7 +1,13 @@
-out vec4 color;
+out vec3 color;
 in vec3 outColor;
+
+uniform int uDrawWireframe;
 
 void main(){
 
-    color = vec4(outColor, 1);
+    color = outColor;
+
+    if(uDrawWireframe==1) {
+	color = vec3(1.0);
+    }
 }

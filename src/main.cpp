@@ -60,6 +60,7 @@ glm::mat4 projectionMatrix;
 // use tesselation
 bool useTess = true;
 int tessLevel = 1;
+bool drawWireframe = false;
 
 GLuint tessShader;
 GLuint normalShader;
@@ -182,6 +183,10 @@ void InitGlfw() {
     // Bind and create VAO, otherwise, we can't do anything in OpenGL.
     glGenVertexArrays(1, &vao);
     glBindVertexArray(vao);
+
+    GL_C(glEnable(GL_CULL_FACE));
+    GL_C(glEnable(GL_DEPTH_TEST));
+
 }
 
 void Render() {
@@ -220,20 +225,28 @@ void Render() {
 	shader = normalShader;
     }
 
-	GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
-	GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
 
-	if(useTess) {
-	    GL_C(glUniform1f(glGetUniformLocation(shader, "uTessLevel"), (float)tessLevel  ));
-	}
+    GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
+    GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
 
+    if(useTess) {
+	GL_C(glUniform1f(glGetUniformLocation(shader, "uTessLevel"), (float)tessLevel  ));
+    }
+    GL_C(glUniform1i(glGetUniformLocation(shader, "uDrawWireframe"), drawWireframe ? 1 : 0  ));
+
+
+    if(drawWireframe)
+	GL_C(glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ));
+    else
+	glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
     GL_C(glDrawElements(
 	     useTess ?  GL_PATCHES: GL_TRIANGLES,
 
 	     mesh.faces.size() , GL_UNSIGNED_INT, 0));
 
-
+    // no wireframe for  ImGui.
+    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
     {
      	ImGui::SetNextWindowSize(ImVec2(GUI_WIDTH,WINDOW_HEIGHT));
@@ -249,12 +262,14 @@ void Render() {
 
 
 	    static float f = 0.0f;
-	    ImGui::Text("Hello, world!");
+	    ImGui::Text("Gui");
+
+	    ImGui::Checkbox("Wireframe", &drawWireframe);
 
 	    ImGui::Checkbox("Use Tessellation", &useTess);
 
 	    if(useTess) {
-	    ImGui::SliderInt("TessLevel", &tessLevel, 1, 5);
+		ImGui::SliderInt("TessLevel", &tessLevel, 1, 5);
 
 	    }
 
@@ -293,7 +308,7 @@ void HandleInput() {
 	    cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
 	    cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
 	}
-     }
+    }
 }
 
 int main(int argc, char** argv)
@@ -326,18 +341,12 @@ int main(int argc, char** argv)
 
 
 
-
-    GL_C(glEnable(GL_CULL_FACE));
-    GL_C(glEnable(GL_DEPTH_TEST));
-
-
     while (!glfwWindowShouldClose(window)) {
 
         glfwPollEvents();
         ImGui_ImplGlfwGL3_NewFrame();
 
 
-	//  	GL_C(glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ));
 
 
 	Render();
