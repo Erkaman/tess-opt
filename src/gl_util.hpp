@@ -40,7 +40,7 @@ inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 /*
   This utility function loads the contents of a file into a std::string.
  */
-std::string LoadFile(const char* path) {
+inline std::string LoadFile(const char* path) {
 
     //  Open file
 
@@ -70,7 +70,7 @@ std::string LoadFile(const char* path) {
 }
 
 
-char* GetShaderLogInfo(GLuint shader) {
+inline char* GetShaderLogInfo(GLuint shader) {
 
     GLint len;
     GLsizei actualLen;
@@ -84,7 +84,7 @@ char* GetShaderLogInfo(GLuint shader) {
 
 }
 
-GLuint CreateShaderFromString(const std::string& shaderSource, const GLenum shaderType) {
+inline GLuint CreateShaderFromString(const std::string& shaderSource, const GLenum shaderType) {
 
     // before the shader source code, we append the contents of the file "shader_common"
     // this contains important functions that are common between some shaders.
@@ -112,7 +112,7 @@ GLuint CreateShaderFromString(const std::string& shaderSource, const GLenum shad
 /*
   Load shader with vertex shader, fragment shader, TC-shader, TE-shader.
  */
-GLuint LoadTessShader(
+inline GLuint LoadTessShader(
     const std::string& vsSource,
     const std::string& fsShader,
     const std::string& tcsSource,
@@ -158,7 +158,7 @@ GLuint LoadTessShader(
 /*
   Load shader with only vertex and fragment shader.
  */
-GLuint LoadNormalShader(const std::string& vsSource, const std::string& fsShader){
+inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& fsShader){
 
 
     // Create the shaders

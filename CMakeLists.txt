@@ -25,6 +25,8 @@ include_directories(
 	deps/glm-0.9.7.5/
 	deps/glad/include
 	deps/tiny_obj_loader
+	deps/imgui/include
+
 )
 
 
@@ -50,7 +52,15 @@ set(ALL_LIBS
 
 add_executable(tess_opt
   src/main.cpp
+  src/imgui_impl_glfw_gl3.cpp
+
   deps/glad/src/glad.c
+
+  deps/imgui/src/imgui.cpp
+  deps/imgui/src/imgui_draw.cpp
+
+
+
 	)
 
 target_link_libraries(tess_opt

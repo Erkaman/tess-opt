@@ -2,6 +2,8 @@
 
 #include "gl_util.hpp"
 
+#include "imgui.h"
+#include "imgui_impl_glfw_gl3.h"
 
 /*
   GLM
@@ -37,12 +39,13 @@ struct Mesh {
 } mesh;
 
 /*
-Global variables.
- */
+  Global variables.
+*/
 GLuint vao;
 
 const int WINDOW_WIDTH = 960;
 const int WINDOW_HEIGHT = 650;
+const int GUI_WIDTH = 200;
 
 GLFWwindow* window;
 
@@ -52,11 +55,24 @@ float cameraZoom = 7.0;
 
 glm::vec3 cameraPos;
 glm::mat4 viewMatrix;
+glm::mat4 projectionMatrix;
+
+bool isTess = false;
+
+GLuint tessShader;
+GLuint normalShader;
+
+
+double prevMouseX = 0;
+double prevMouseY = 0;
+
+double curMouseX = 0;
+double curMouseY = 0;
 
 
 /*
   Update view matrix according pitch and yaw. Is called every frame.
- */
+*/
 void updateViewMatrix() {
 
     glm::mat4 cameraTransform;
@@ -137,15 +153,6 @@ void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset){
     cameraZoom += yoffset;
 }
 
-// GLFW key callback.
-void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods){
-    switch(key){
-    case GLFW_KEY_ESCAPE:
-	/* Exit program on Escape */
-	glfwSetWindowShouldClose(window, GLFW_TRUE);
-	break;
-    }
-}
 
 void InitGlfw() {
     if (!glfwInit())
@@ -164,7 +171,6 @@ void InitGlfw() {
     }
 
     glfwSetScrollCallback(window, ScrollCallback);
-    glfwSetKeyCallback(window, KeyCallback);
 
     glfwMakeContextCurrent(window);
 
@@ -176,17 +182,126 @@ void InitGlfw() {
     glBindVertexArray(vao);
 }
 
+void Render() {
+    int fbWidth, fbHeight;
+    int wWidth, wHeight;
+
+
+    glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
+    glfwGetWindowSize(window, &wWidth, &wHeight);
+
+//    printf("ratio: %f\n",   );
+
+    float ratio = fbWidth / (float)wWidth;
+
+    int s = ratio * GUI_WIDTH;
+
+
+    GL_C(glViewport(s, 0, fbWidth-s, fbHeight));
+    GL_C(glClearColor(0.0f, 0.0f, 0.3f, 1.0f));
+    GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+
+    if(isTess)
+	GL_C(glUseProgram(tessShader));
+    else
+	GL_C(glUseProgram(normalShader));
+
+
+    updateViewMatrix();
+
+    glm::mat4 MVP = projectionMatrix * viewMatrix;
+
+    if(isTess) {
+
+
+
+
+	GL_C(glUniformMatrix4fv(glGetUniformLocation(tessShader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
+	GL_C(glUniformMatrix4fv(glGetUniformLocation(tessShader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
+
+    } else {
+
+	GL_C(glUniformMatrix4fv(glGetUniformLocation(normalShader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
+	GL_C(glUniformMatrix4fv(glGetUniformLocation(normalShader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
+
+
+
+    }
+
+
+
+
+    GL_C(glDrawElements(
+	     isTess ?  GL_PATCHES: GL_TRIANGLES,
+
+	     mesh.faces.size() , GL_UNSIGNED_INT, 0));
+
+
+
+    {
+     	ImGui::SetNextWindowSize(ImVec2(GUI_WIDTH,WINDOW_HEIGHT));
+	ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+
+	ImGui::PushStyleColor(  ImGuiCol_WindowBg,  ImVec4(0.0, 0.0, 0.0, 1.0) ); // make non-transparent window.
+	ImGui::Begin("Another Window", NULL,
+		     ImGuiWindowFlags_NoResize |
+		     ImGuiWindowFlags_NoMove |
+		     ImGuiWindowFlags_NoCollapse);
+	{
+
+
+	    static float f = 0.0f;
+	    ImGui::Text("Hello, world!");
+	    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+
+	}
+	ImGui::End();
+	ImGui::PopStyleColor( );
+    }
+    ImGui::Render();
+
+
+}
+
+void HandleInput() {
+    ImGuiIO& io = ImGui::GetIO();
+
+    if(io.KeysDown[GLFW_KEY_ESCAPE]) {
+	glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
+    cameraZoom += GetMouseWheel();
+
+
+    prevMouseX = curMouseX;
+    prevMouseY = curMouseY;
+    glfwGetCursorPos(window, &curMouseX, &curMouseY);
+
+    const float MOUSE_SENSITIVITY = 0.005;
+
+    int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+    if (state == GLFW_PRESS) {
+
+	cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
+	cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
+    }
+
+
+}
+
 int main(int argc, char** argv)
 {
 
     InitGlfw();
+    ImGui_ImplGlfwGL3_Init(window, true);
 
-    GLuint normalShader =  LoadNormalShader(LoadFile("simple.vs") ,
-					    LoadFile("simple.fs"));
+    normalShader =  LoadNormalShader(LoadFile("simple.vs") ,
+				     LoadFile("simple.fs"));
 
     printf("LOAD\n");
 
-    GLuint tessShader =  LoadTessShader(
+    tessShader =  LoadTessShader(
 	LoadFile("tess.vs"),
 	LoadFile("tess.fs"),
 	LoadFile("tess.tcs"),
@@ -194,11 +309,11 @@ int main(int argc, char** argv)
 	);
 
 
-	glPatchParameteri(GL_PATCH_VERTICES, 3);
+    glPatchParameteri(GL_PATCH_VERTICES, 3);
 
 
     // projection matrix.
-    glm::mat4 projectionMatrix = glm::perspective(0.9f, (float)WINDOW_WIDTH / WINDOW_HEIGHT, 0.1f, 1000.0f);
+    projectionMatrix = glm::perspective(0.9f, (float)(WINDOW_WIDTH-GUI_WIDTH) / WINDOW_HEIGHT, 0.1f, 1000.0f);
 
 
 
@@ -206,76 +321,29 @@ int main(int argc, char** argv)
 
 
 
-    double prevMouseX = 0;
-    double prevMouseY = 0;
-
-    double curMouseX = 0;
-    double curMouseY = 0;
 
     GL_C(glEnable(GL_CULL_FACE));
     GL_C(glEnable(GL_DEPTH_TEST));
 
-    bool isTess = false;
 
     while (!glfwWindowShouldClose(window)) {
+
+        glfwPollEvents();
+        ImGui_ImplGlfwGL3_NewFrame();
+
+
 	//  	GL_C(glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ));
 
 
-	int fbWidth, fbHeight;
-	glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
-	GL_C(glViewport(0, 0, fbWidth, fbHeight));
-	GL_C(glClearColor(0.0f, 0.0f, 0.3f, 0.0f));
-        GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
+	Render();
 
-	if(isTess)
-	    GL_C(glUseProgram(tessShader));
-	else
-	    GL_C(glUseProgram(normalShader));
+	HandleInput();
 
 
-	updateViewMatrix();
-
-	    glm::mat4 MVP = projectionMatrix * viewMatrix;
-
-	if(isTess) {
-
-	    GL_C(glUniformMatrix4fv(glGetUniformLocation(tessShader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
-	    GL_C(glUniformMatrix4fv(glGetUniformLocation(tessShader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
-
-	} else {
-
-	    GL_C(glUniformMatrix4fv(glGetUniformLocation(normalShader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
-	    GL_C(glUniformMatrix4fv(glGetUniformLocation(normalShader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
-
-
-
-	}
-
-
-
-
-	GL_C(glDrawElements(
-		 isTess ?  GL_PATCHES: GL_TRIANGLES,
-
-		 mesh.faces.size() , GL_UNSIGNED_INT, 0));
-
-
-	prevMouseX = curMouseX;
-	prevMouseY = curMouseY;
-	glfwGetCursorPos(window, &curMouseX, &curMouseY);
-
-	const float MOUSE_SENSITIVITY = 0.005;
-
-	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-	if (state == GLFW_PRESS) {
-
-	    cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
-	    cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
-	}
 
         /* display and process events through callbacks */
         glfwSwapBuffers(window);
-        glfwPollEvents();
+
     }
 
     glfwTerminate();
