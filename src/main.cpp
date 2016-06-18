@@ -45,7 +45,7 @@ GLuint vao;
 
 const int WINDOW_WIDTH = 960;
 const int WINDOW_HEIGHT = 650;
-const int GUI_WIDTH = 200;
+const int GUI_WIDTH = 250;
 
 GLFWwindow* window;
 
@@ -58,7 +58,7 @@ glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
 
 // use tesselation
-bool useTess = true;
+bool useTess = false;
 int tessLevel = 1;
 bool drawWireframe = false;
 
@@ -71,6 +71,10 @@ double prevMouseY = 0;
 
 double curMouseX = 0;
 double curMouseY = 0;
+
+const int RENDER_SPECULAR = 0;
+const int RENDER_PROCEDURAL_TEXTURE = 1;
+int renderMode = RENDER_PROCEDURAL_TEXTURE;
 
 
 /*
@@ -186,7 +190,6 @@ void InitGlfw() {
 
     GL_C(glEnable(GL_CULL_FACE));
     GL_C(glEnable(GL_DEPTH_TEST));
-
 }
 
 void Render() {
@@ -234,6 +237,8 @@ void Render() {
     }
     GL_C(glUniform1i(glGetUniformLocation(shader, "uDrawWireframe"), drawWireframe ? 1 : 0  ));
 
+    GL_C(glUniform1i(glGetUniformLocation(shader, "uRenderSpecular"), renderMode==RENDER_SPECULAR ? 1 : 0  ));
+
 
     if(drawWireframe)
 	GL_C(glPolygonMode( GL_FRONT_AND_BACK, GL_LINE ));
@@ -270,8 +275,11 @@ void Render() {
 
 	    if(useTess) {
 		ImGui::SliderInt("TessLevel", &tessLevel, 1, 5);
-
 	    }
+
+	    ImGui::Text("Render Mode");
+	    ImGui::RadioButton("Specular", &renderMode, RENDER_SPECULAR);
+	    ImGui::RadioButton("Procedural Texture", &renderMode, RENDER_PROCEDURAL_TEXTURE);
 
 
 

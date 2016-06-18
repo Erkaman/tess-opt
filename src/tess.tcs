@@ -13,8 +13,6 @@ void main(){
     tesNormal[gl_InvocationID] = tcsNormal[gl_InvocationID];
     tesPos[gl_InvocationID] = tcsPos[gl_InvocationID];
 
-//    float tessLevel = 1.0;
-
     gl_TessLevelOuter[0] = uTessLevel;
     gl_TessLevelOuter[1] = uTessLevel;
     gl_TessLevelOuter[2] = uTessLevel;
