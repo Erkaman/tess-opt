@@ -69,6 +69,8 @@ bool useTess = false;
 int tessLevel = 1;
 bool drawWireframe = false;
 
+bool doVertexCalculation = false;
+
 GLuint tessShader;
 GLuint normalShader;
 
@@ -251,6 +253,8 @@ void Render() {
 
     if(useTess) {
 	GL_C(glUniform1f(glGetUniformLocation(shader, "uTessLevel"), (float)tessLevel  ));
+    } else {
+	GL_C(glUniform1i(glGetUniformLocation(shader, "uDoVertexCalculation"),  doVertexCalculation ? 1 : 0 ));
     }
     GL_C(glUniform1i(glGetUniformLocation(shader, "uDrawWireframe"), drawWireframe ? 1 : 0  ));
 
@@ -296,6 +300,10 @@ void Render() {
 
 	    if(useTess) {
 		ImGui::SliderInt("TessLevel", &tessLevel, 1, 5);
+	    } else {
+
+		ImGui::Checkbox("Do Vertex Calculation", &doVertexCalculation);
+
 	    }
 
 	    ImGui::Text("Render Mode");
