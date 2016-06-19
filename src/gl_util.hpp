@@ -2,36 +2,31 @@
 
 /*
   GLFW
- */
+*/
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-#include <stdlib.h>
-#include <string.h>
+#include <cstdlib>
+#include <cstring>
 
 #include <string>
-
 #include <chrono>
-
 #include <ctime>
-
-
-#define _DEBUG
 
 inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 {
     GLenum err = glGetError();
     //  const GLubyte* sError = gluErrorString(err);
 
-    if (err != GL_NO_ERROR)
-	{
-	    printf("OpenGL error %08x, at %s:%i - for %s. Error Message\n", err, fname, line, stmt);
-	    exit(1);
-	}
+    if (err != GL_NO_ERROR){
+	printf("OpenGL error %08x, at %s:%i - for %s.\n", err, fname, line, stmt);
+	exit(1);
+    }
 }
 
+#define _DEBUG
 
-// GL Check.
+// GL Check Macro.
 #ifdef _DEBUG
 #define GL_C(stmt) do {					\
 	stmt;						\
@@ -41,14 +36,14 @@ inline void CheckOpenGLError(const char* stmt, const char* fname, int line)
 #define GL_C(stmt) stmt
 #endif
 
-
-
 /*
   This utility function loads the contents of a file into a std::string.
- */
+*/
 inline std::string LoadFile(const char* path) {
 
+    //
     //  Open file
+    //
 
     FILE* fp = fopen(path, "rb" );
 
@@ -57,7 +52,9 @@ inline std::string LoadFile(const char* path) {
 	exit(1);
     }
 
+    //
     // Get file size.
+    //
 
     // seek to end of file.
     fseek(fp, 0L, SEEK_END);
@@ -65,7 +62,9 @@ inline std::string LoadFile(const char* path) {
     // reset file pointer
     fseek(fp, 0L, SEEK_SET);
 
+    //
     // Read file.
+    //
 
     char* buffer = new char[fileSize];
     fread(buffer, sizeof(char), (size_t)fileSize, fp);
@@ -74,7 +73,6 @@ inline std::string LoadFile(const char* path) {
 
     return str;
 }
-
 
 inline char* GetShaderLogInfo(GLuint shader) {
 
@@ -116,8 +114,8 @@ inline GLuint CreateShaderFromString(const std::string& shaderSource, const GLen
 }
 
 /*
-  Load shader with vertex shader, fragment shader, TC-shader, TE-shader.
- */
+  Load shader with vertex shader, fragment shader, TCS, and TES.
+*/
 inline GLuint LoadTessShader(
     const std::string& vsSource,
     const std::string& fsShader,
@@ -163,7 +161,7 @@ inline GLuint LoadTessShader(
 
 /*
   Load shader with only vertex and fragment shader.
- */
+*/
 inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& fsShader){
 
 
@@ -195,9 +193,6 @@ inline GLuint LoadNormalShader(const std::string& vsSource, const std::string& f
     return shader;
 }
 
-
-
-
 class GpuProfiler
 {
 public:
@@ -209,100 +204,76 @@ public:
 
     inline void EndFrame (); // call at the end of a frame.
 
-    // Wait on GPU for last frame's data (not this frame's) to be available
-    inline void WaitForDataAndUpdate ();
-
-    inline float Dt ()
-	{ return m_adT; }
-    inline float DtAvg ()
-	{ return m_adTAvg; }
+    inline float GetAverageTime (){ return averageTime; }
 
 protected:
     int m_iFrameQuery;
     int m_iFrameCollect;
 
+    GLuint m_queries[2];
 
-    GLuint m_apQueryTs[2];
+    float averageTime;
 
-    float m_adT;
-    float m_adTAvg;
-
-    float m_adTTotalAvg;
-    int m_frameCountAvg;
-    float m_tBeginAvg;
+    float m_totalAverage;
+    int m_frameCountAverage;
+    float m_begAverage;
 };
 
 
 inline GpuProfiler::GpuProfiler ()
     :	m_iFrameQuery(0),
 	m_iFrameCollect(-1),
-	m_frameCountAvg(0),
-	m_tBeginAvg(0.0f)
-{
-    memset(m_apQueryTs, 0, sizeof(m_apQueryTs));
-
-    GL_C(glGenQueries(1,&m_apQueryTs[0] ));
-    GL_C(glGenQueries(1,&m_apQueryTs[1] ));
+	m_frameCountAverage(0),
+	m_begAverage(0.0f) {
+    GL_C(glGenQueries(1,&m_queries[0] ));
+    GL_C(glGenQueries(1,&m_queries[1] ));
 }
 
-
 inline GpuProfiler::~GpuProfiler () {
-    GL_C(glDeleteQueries(1, &m_apQueryTs[0]) );
-    GL_C(glDeleteQueries(1, &m_apQueryTs[1]) );
+    GL_C(glDeleteQueries(1, &m_queries[0]) );
+    GL_C(glDeleteQueries(1, &m_queries[1]) );
 }
 
 inline void GpuProfiler::Begin () {
-    GL_C(glBeginQuery(GL_TIME_ELAPSED,m_apQueryTs[m_iFrameQuery]));
+    GL_C(glBeginQuery(GL_TIME_ELAPSED,m_queries[m_iFrameQuery]));
 }
-
 
 inline void GpuProfiler::End () {
     GL_C(glEndQuery(GL_TIME_ELAPSED));
 }
 
+inline float Time() {
+    return  (float)(std::clock()) / (float)CLOCKS_PER_SEC;
+}
 
 inline void GpuProfiler::EndFrame ()
 {
     ++m_iFrameQuery &= 1;
-}
 
-inline float Time() {
-    std::clock_t startcputime = std::clock();
-    //  LOG_I("startcputime: %ld", startcputime);
-    float cpu_duration = (float)(startcputime) / (float)CLOCKS_PER_SEC;
-    return cpu_duration;
-}
+    if (m_iFrameCollect < 0) {
+	// Haven't run enough frames yet to have data
+	m_iFrameCollect = 0;
+	return;
+    }
 
+    int iFrame = m_iFrameCollect;
+    ++m_iFrameCollect &= 1;
 
-inline void GpuProfiler::WaitForDataAndUpdate ()
-{
-	if (m_iFrameCollect < 0)
-	{
-		// Haven't run enough frames yet to have data
-		m_iFrameCollect = 0;
-		return;
-	}
+    GLuint64 timerResult;
 
-	int iFrame = m_iFrameCollect;
-	++m_iFrameCollect &= 1;
+    glGetQueryObjectui64v(m_queries[iFrame],
+			  GL_QUERY_RESULT, &timerResult);
 
-	    GLuint64 timer;
+    m_totalAverage += float(timerResult) / (1000.0f * 1000.0f );
 
-	    glGetQueryObjectui64v(m_apQueryTs[iFrame],
-                    GL_QUERY_RESULT, &timer);
+    ++m_frameCountAverage;
 
-		m_adT = float(timer) / float(1000.0f * 1000.0f );
+    // once enough times has passed, write average measured time.
+    if (Time() > m_begAverage + 0.50f) {
+	averageTime = m_totalAverage / m_frameCountAverage;
+	m_totalAverage = 0.0f;
+	m_frameCountAverage = 0;
+	m_begAverage = Time();
+    }
 
-		m_adTTotalAvg += m_adT;
-
-	++m_frameCountAvg;
-	if (Time() > m_tBeginAvg + 0.50f)
-	{
-	    //   LOG_I("avg");
-			m_adTAvg = m_adTTotalAvg / m_frameCountAvg;
-			m_adTTotalAvg = 0.0f;
-
-		m_frameCountAvg = 0;
-		m_tBeginAvg = Time();
-	}
 }

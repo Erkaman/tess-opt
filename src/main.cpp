@@ -353,14 +353,13 @@ int main(int argc, char** argv)
 	HandleInput();
 
 	// set window title.
-	string windowTitle =  "Teapot render time: " + std::to_string(profiler->DtAvg());
+	string windowTitle =  "Teapot render time: " + std::to_string(profiler->GetAverageTime());
 	glfwSetWindowTitle(window, windowTitle.c_str());
 
         /* display and process events through callbacks */
         glfwSwapBuffers(window);
 
 	// update profiler.
-	profiler->WaitForDataAndUpdate();
 	profiler->EndFrame();
     }
 
