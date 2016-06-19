@@ -21,19 +21,18 @@
 #define TINYOBJLOADER_IMPLEMENTATION // define this in only *one* .cc
 #include "tiny_obj_loader.h"
 
-#ifndef M_PI
-#define M_PI 3.14159
-#endif
-
-
 using std::string;
 using std::vector;
 using glm::vec3;
 
+/*
+  Global variables below.
+*/
+
+
 struct Mesh {
     std::vector<float> vertices;
     std::vector<float> normals;
-
     std::vector<GLuint> faces;
 
     GLuint indexVbo;
@@ -41,14 +40,9 @@ struct Mesh {
     GLuint normalVbo;
 } mesh;
 
-/*
-  Global variables.
-*/
 GLuint vao;
 
-
 GpuProfiler* profiler;
-
 
 const int WINDOW_WIDTH = 960;
 const int WINDOW_HEIGHT = 650;
@@ -56,24 +50,15 @@ const int GUI_WIDTH = 250;
 
 GLFWwindow* window;
 
-float cameraYaw = 4.2f;
-float cameraPitch = 0.5f;
-float cameraZoom = 3.0;
-
+float cameraYaw = 5.21f;
+float cameraPitch = 0.28f;
+float cameraZoom = 2.8f;
 glm::vec3 cameraPos;
 glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
 
-// use tesselation
-bool useTess = false;
-int tessLevel = 1;
-bool drawWireframe = false;
-
-bool doVertexCalculation = false;
-
 GLuint tessShader;
 GLuint normalShader;
-
 
 double prevMouseX = 0;
 double prevMouseY = 0;
@@ -83,20 +68,21 @@ double curMouseY = 0;
 
 const int RENDER_SPECULAR = 0;
 const int RENDER_PROCEDURAL_TEXTURE = 1;
+
+/*
+  These variables are manipulated by ImGui:
+ */
 int renderMode = RENDER_PROCEDURAL_TEXTURE;
-
-
-
-
-
-std::chrono::milliseconds oneMilliSecond(1);
-
+bool useTess = false;
+int tessLevel = 1;
+bool drawWireframe = false;
+bool doVertexCalculation = false;
 
 
 /*
   Update view matrix according pitch and yaw. Is called every frame.
 */
-void updateViewMatrix() {
+void UpdateViewMatrix() {
 
     glm::mat4 cameraTransform;
 
@@ -148,9 +134,6 @@ void LoadModel(void) {
     GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVbo));
     GL_C(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)* mesh.faces.size(), mesh.faces.data(), GL_STATIC_DRAW));
 
-
-    // create
-
     GL_C(glGenBuffers(1, &mesh.vertexVbo));
     GL_C(glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexVbo));
     GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mesh.vertices.size(), mesh.vertices.data() , GL_STATIC_DRAW));
@@ -160,7 +143,6 @@ void LoadModel(void) {
     GL_C(glBindBuffer(GL_ARRAY_BUFFER, mesh.normalVbo));
     GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mesh.normals.size(), mesh.normals.data() , GL_STATIC_DRAW));
 
-    // enable
     GL_C(glEnableVertexAttribArray(0));
     GL_C(glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexVbo));
     GL_C(glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0));
@@ -170,12 +152,6 @@ void LoadModel(void) {
     GL_C(glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, (void*)0));
 
 }
-
-// GLFW scroll callback.
-void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset){
-    cameraZoom += yoffset;
-}
-
 
 void InitGlfw() {
     if (!glfwInit())
@@ -192,9 +168,6 @@ void InitGlfw() {
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
-
-    glfwSetScrollCallback(window, ScrollCallback);
-
     glfwMakeContextCurrent(window);
 
     // load GLAD.
@@ -206,12 +179,6 @@ void InitGlfw() {
 
     GL_C(glEnable(GL_CULL_FACE));
     GL_C(glEnable(GL_DEPTH_TEST));
-
-
-    /*
-      There variables are used for regulating FPS.
-     */
-
 }
 
 void Render() {
@@ -222,22 +189,17 @@ void Render() {
     glfwGetFramebufferSize(window, &fbWidth, &fbHeight);
     glfwGetWindowSize(window, &wWidth, &wHeight);
 
-    float ratio = fbWidth / (float)wWidth;
+    // important that we do this, otherwise it won't work on retina!
+    float ratio = fbWidth / (float)wWidth; //
     int s = ratio * GUI_WIDTH;
 
-
+    // a tiny left part of the window is dedicated to GUI. So shift the viewport to the right some.
     GL_C(glViewport(s, 0, fbWidth-s, fbHeight));
     GL_C(glClearColor(0.0f, 0.0f, 0.3f, 1.0f));
     GL_C(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT));
 
-    if(useTess)
-	GL_C(glUseProgram(tessShader));
-    else
-	GL_C(glUseProgram(normalShader));
-
-
-    updateViewMatrix();
-
+    // update matrices.
+    UpdateViewMatrix();
     glm::mat4 MVP = projectionMatrix * viewMatrix;
 
     GLuint shader;
@@ -246,19 +208,24 @@ void Render() {
     } else {
 	shader = normalShader;
     }
+    GL_C(glUseProgram(shader));
 
 
+
+    //
+    // Set uniforms
+    //
     GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uMvp"), 1, GL_FALSE, glm::value_ptr(MVP) ));
     GL_C(glUniformMatrix4fv(glGetUniformLocation(shader, "uView"),1, GL_FALSE,  glm::value_ptr(viewMatrix)  ));
+    GL_C(glUniform1i(glGetUniformLocation(shader, "uDrawWireframe"), drawWireframe ? 1 : 0  ));
+    GL_C(glUniform1i(glGetUniformLocation(shader, "uRenderSpecular"), renderMode==RENDER_SPECULAR ? 1 : 0  ));
 
     if(useTess) {
 	GL_C(glUniform1f(glGetUniformLocation(shader, "uTessLevel"), (float)tessLevel  ));
     } else {
 	GL_C(glUniform1i(glGetUniformLocation(shader, "uDoVertexCalculation"),  doVertexCalculation ? 1 : 0 ));
     }
-    GL_C(glUniform1i(glGetUniformLocation(shader, "uDrawWireframe"), drawWireframe ? 1 : 0  ));
 
-    GL_C(glUniform1i(glGetUniformLocation(shader, "uRenderSpecular"), renderMode==RENDER_SPECULAR ? 1 : 0  ));
 
 
     if(drawWireframe)
@@ -275,13 +242,13 @@ void Render() {
 
     profiler->End();
 
-    // no wireframe for  ImGui.
+    // no wireframe for rendering  ImGui.
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 
+    // render GUI
     {
      	ImGui::SetNextWindowSize(ImVec2(GUI_WIDTH,WINDOW_HEIGHT));
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
-
 
 	ImGui::PushStyleColor(  ImGuiCol_WindowBg,  ImVec4(0.0, 0.0, 0.0, 1.0) ); // make non-transparent window.
 	ImGui::Begin("Another Window", NULL,
@@ -331,8 +298,8 @@ void HandleInput() {
 
     if(!io.WantCaptureMouse) { // if not interacting with ImGui, we handle our own input.
 
+	// zoom with mouse-wheel.
 	cameraZoom += GetMouseWheel();
-
 
 	prevMouseX = curMouseX;
 	prevMouseY = curMouseY;
@@ -342,26 +309,24 @@ void HandleInput() {
 
 	int state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
 
+	// we change yaw and pitch by dragging with the mouse.
 	if (state == GLFW_PRESS) {
 	    cameraYaw += (curMouseX - prevMouseX ) * MOUSE_SENSITIVITY;
 	    cameraPitch += (curMouseY - prevMouseY ) * MOUSE_SENSITIVITY;
 	}
     }
 }
-//// top-left: 410, 70
-//// top-left: 1100, 700
-// <410, 70, 690, 630>
-
 
 int main(int argc, char** argv)
 {
+
     InitGlfw();
+
+    // init ImGui
     ImGui_ImplGlfwGL3_Init(window, true);
 
     normalShader =  LoadNormalShader(LoadFile("simple.vs") ,
 				     LoadFile("simple.fs"));
-
-    printf("LOAD\n");
 
     tessShader =  LoadTessShader(
 	LoadFile("tess.vs"),
@@ -370,17 +335,13 @@ int main(int argc, char** argv)
 	LoadFile("tess.tes")
 	);
 
+    // our patches are simply triangles in our case.
+    GL_C(glPatchParameteri(GL_PATCH_VERTICES, 3));
 
-    glPatchParameteri(GL_PATCH_VERTICES, 3);
-
-
-    // projection matrix.
+    // setup projection matrix.
     projectionMatrix = glm::perspective(0.9f, (float)(WINDOW_WIDTH-GUI_WIDTH) / WINDOW_HEIGHT, 0.1f, 1000.0f);
 
-
-
     LoadModel();
-
 
     profiler = new GpuProfiler;
 
@@ -389,23 +350,18 @@ int main(int argc, char** argv)
         glfwPollEvents();
         ImGui_ImplGlfwGL3_NewFrame();
 
-
-
-
 	Render();
 
 	HandleInput();
 
+	// set window title.
 	string windowTitle =  "Teapot render time: " + std::to_string(profiler->DtAvg());
-//	windowTitle +=  ". FPS: " + fpsString;
-
 	glfwSetWindowTitle(window, windowTitle.c_str());
-
-
 
         /* display and process events through callbacks */
         glfwSwapBuffers(window);
 
+	// update profiler.
 	profiler->WaitForDataAndUpdate();
 	profiler->EndFrame();
     }
@@ -413,3 +369,4 @@ int main(int argc, char** argv)
     glfwTerminate();
     exit(EXIT_SUCCESS);
 }
+// screencapture -R410,70,710,650 -T 2 out4.png
