@@ -1,10 +1,8 @@
-#include <stdio.h>
-#include <chrono>
-#include <thread>
-
-
 #include "gl_util.hpp"
 
+/*
+ ImGui
+ */
 #include "imgui.h"
 #include "imgui_impl_glfw_gl3.h"
 

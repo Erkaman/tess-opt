@@ -1,14 +1,13 @@
-out vec3 color;
-
 in vec3 fsPos;
 in vec3 fsNormal;
 in vec3 fsResult;
+
+out vec3 color;
 
 uniform mat4 uView;
 uniform int uDrawWireframe;
 uniform int uRenderSpecular;
 uniform int uDoVertexCalculation;
-
 
 void main()
 {

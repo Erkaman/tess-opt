@@ -1,8 +1,7 @@
-layout(vertices=3) out;
-
 in vec3 tcsPos[];
 in vec3 tcsNormal[];
 
+layout(vertices=3) out;
 out vec3 tesPos[];
 out vec3 tesNormal[];
 
