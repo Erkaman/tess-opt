@@ -47,10 +47,14 @@ const int WINDOW_HEIGHT = 650;
 const int GUI_WIDTH = 250;
 
 GLFWwindow* window;
-
-float cameraYaw = 5.21f;
-float cameraPitch = 0.28f;
-float cameraZoom = 2.8f;
+/*
+yaw: 5.409336
+pitch: -0.005684
+zoom: 1.600001
+ */
+float cameraYaw = 5.4f;
+float cameraPitch =0.0f;
+float cameraZoom = 1.6f;
 glm::vec3 cameraPos;
 glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
@@ -292,6 +296,14 @@ void HandleInput() {
 
     if(io.KeysDown[GLFW_KEY_ESCAPE]) {
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
+    }
+
+    if(io.KeysDown[GLFW_KEY_P]) {
+	printf("zoom: %f\n", cameraZoom );
+	printf("yaw: %f\n", cameraYaw );
+	printf("pitch: %f\n", cameraPitch );
+
+
     }
 
     if(!io.WantCaptureMouse) { // if not interacting with ImGui, we handle our own input.
