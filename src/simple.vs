@@ -9,6 +9,9 @@ uniform mat4 uMvp;
 uniform mat4 uView;
 uniform int uDoVertexCalculation;
 uniform int uRenderSpecular;
+uniform int uNoiseOctaves;
+uniform float uNoiseScale;
+uniform float uNoisePersistence;
 
 void main()
 {
@@ -19,7 +22,8 @@ void main()
 	if(uRenderSpecular == 1)
 	    fsResult = doSpecularLight(vsNormal, vsPos, uView);
 	else
-	    fsResult = sampleTexture(vsPos);
+	    fsResult = sampleTexture(vsPos, uNoiseScale,
+	uNoiseOctaves, uNoisePersistence);
     }
 
 

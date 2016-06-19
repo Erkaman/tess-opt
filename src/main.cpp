@@ -47,14 +47,11 @@ const int WINDOW_HEIGHT = 650;
 const int GUI_WIDTH = 250;
 
 GLFWwindow* window;
-/*
-yaw: 5.409336
-pitch: -0.005684
-zoom: 1.600001
- */
-float cameraYaw = 5.4f;
-float cameraPitch =0.0f;
-float cameraZoom = 1.6f;
+
+
+float cameraYaw = 5.21f;
+float cameraPitch = 0.28f;
+float cameraZoom = 2.8f;
 glm::vec3 cameraPos;
 glm::mat4 viewMatrix;
 glm::mat4 projectionMatrix;
@@ -79,6 +76,10 @@ bool useTess = false;
 int tessLevel = 1;
 bool drawWireframe = false;
 bool doVertexCalculation = false;
+int noiseOctaves = 4;
+float noiseScale = 2.8f;
+float noisePersistence = 0.3f;
+
 
 
 /*
@@ -222,11 +223,19 @@ void Render() {
     GL_C(glUniform1i(glGetUniformLocation(shader, "uDrawWireframe"), drawWireframe ? 1 : 0  ));
     GL_C(glUniform1i(glGetUniformLocation(shader, "uRenderSpecular"), renderMode==RENDER_SPECULAR ? 1 : 0  ));
 
+    GL_C(glUniform1i(glGetUniformLocation(shader, "uNoiseOctaves"), noiseOctaves  ));
+    GL_C(glUniform1f(glGetUniformLocation(shader, "uNoiseScale"), noiseScale  ));
+    GL_C(glUniform1f(glGetUniformLocation(shader, "uNoisePersistence"), noisePersistence  ));
+
+
+
     if(useTess) {
 	GL_C(glUniform1f(glGetUniformLocation(shader, "uTessLevel"), (float)tessLevel  ));
     } else {
 	GL_C(glUniform1i(glGetUniformLocation(shader, "uDoVertexCalculation"),  doVertexCalculation ? 1 : 0 ));
     }
+
+
 
 
 
@@ -253,7 +262,7 @@ void Render() {
 	ImGui::SetNextWindowPos(ImVec2(0, 0));
 
 	ImGui::PushStyleColor(  ImGuiCol_WindowBg,  ImVec4(0.0, 0.0, 0.0, 1.0) ); // make non-transparent window.
-	ImGui::Begin("Another Window", NULL,
+	ImGui::Begin("GUI", NULL,
 		     ImGuiWindowFlags_NoResize |
 		     ImGuiWindowFlags_NoMove |
 		     ImGuiWindowFlags_NoCollapse);
@@ -261,14 +270,13 @@ void Render() {
 
 
 	    static float f = 0.0f;
-	    ImGui::Text("Gui");
 
 	    ImGui::Checkbox("Wireframe", &drawWireframe);
 
 	    ImGui::Checkbox("Use Tessellation", &useTess);
 
 	    if(useTess) {
-		ImGui::SliderInt("TessLevel", &tessLevel, 1, 5);
+		ImGui::SliderInt("TessLevel", &tessLevel, 1, 20);
 	    } else {
 
 		ImGui::Checkbox("Do Vertex Calculation", &doVertexCalculation);
@@ -279,6 +287,15 @@ void Render() {
 	    ImGui::RadioButton("Specular", &renderMode, RENDER_SPECULAR);
 	    ImGui::RadioButton("Procedural Texture", &renderMode, RENDER_PROCEDURAL_TEXTURE);
 
+	    if(renderMode == RENDER_PROCEDURAL_TEXTURE) {
+
+		ImGui::Text("Noise Settings");
+
+		ImGui::SliderInt("Num Octaves", &noiseOctaves, 1, 10);
+		ImGui::SliderFloat("Scale", &noiseScale, 1.0f, 10.0f);
+		ImGui::SliderFloat("Persistence", &noisePersistence, 0.0f, 1.0f);
+
+	    }
 
 
 	}
@@ -296,14 +313,6 @@ void HandleInput() {
 
     if(io.KeysDown[GLFW_KEY_ESCAPE]) {
 	glfwSetWindowShouldClose(window, GLFW_TRUE);
-    }
-
-    if(io.KeysDown[GLFW_KEY_P]) {
-	printf("zoom: %f\n", cameraZoom );
-	printf("yaw: %f\n", cameraYaw );
-	printf("pitch: %f\n", cameraPitch );
-
-
     }
 
     if(!io.WantCaptureMouse) { // if not interacting with ImGui, we handle our own input.

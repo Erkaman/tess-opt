@@ -145,6 +145,6 @@ float fbm( vec3 p, int n, float persistence) {
 }
 
 // generate procedural texture using fbm.
-vec3 sampleTexture(vec3 p) {
-    return vec3(fbm(p * 2.8, 4, 0.3)  );
+vec3 sampleTexture(vec3 p, float scale, int octaves, float persistence) {
+    return vec3(fbm(p * scale, octaves, persistence)  );
 }
