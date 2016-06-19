@@ -144,19 +144,19 @@ void LoadModel(void) {
 
     GL_C(glGenBuffers(1, &mesh.indexVbo));
     GL_C(glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.indexVbo));
-    GL_C(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)* mesh.faces.size()*3, mesh.faces.data(), GL_STATIC_DRAW));
+    GL_C(glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint)* mesh.faces.size(), mesh.faces.data(), GL_STATIC_DRAW));
 
 
     // create
 
     GL_C(glGenBuffers(1, &mesh.vertexVbo));
     GL_C(glBindBuffer(GL_ARRAY_BUFFER, mesh.vertexVbo));
-    GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.vertices.size(), mesh.vertices.data() , GL_STATIC_DRAW));
+    GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mesh.vertices.size(), mesh.vertices.data() , GL_STATIC_DRAW));
 
 
     GL_C(glGenBuffers(1, &mesh.normalVbo));
     GL_C(glBindBuffer(GL_ARRAY_BUFFER, mesh.normalVbo));
-    GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*3*mesh.normals.size(), mesh.normals.data() , GL_STATIC_DRAW));
+    GL_C(glBufferData(GL_ARRAY_BUFFER, sizeof(GLfloat)*mesh.normals.size(), mesh.normals.data() , GL_STATIC_DRAW));
 
     // enable
     GL_C(glEnableVertexAttribArray(0));
@@ -180,8 +180,8 @@ void InitGlfw() {
         exit(EXIT_FAILURE);
 
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
