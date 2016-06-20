@@ -4,6 +4,8 @@ Demonstration of how we can use tessellation shaders to make faster fragment sha
 
 You can read the details in my [blog](https://erkaman.github.io/posts/tess_opt.html)
 
+![Demo](demo_img.png)
+
 ## GUI Usage
 
 I will describe how to use the GUI.
