@@ -2,7 +2,7 @@
 
 Demonstration of how we can use tessellation shaders to make faster fragment shaders.
 
-But it's not done yet!
+You can read the details in my [blog](https://erkaman.github.io/posts/tess_opt.html)
 
 ## GUI Usage
 
